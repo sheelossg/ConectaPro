@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Si abrís el HTML con Live Server (otro puerto), poné la URL del API aquí, ej: http://127.0.0.1:3000 -->
+    <meta name="conectapro-api" content="">
     <title>ConectaPRO | Next-Gen Talent</title>
     <link rel="stylesheet" href="./css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap" rel="stylesheet">
@@ -23,6 +25,8 @@
                 <a href="#" data-route="home">Inicio</a>
                 <a href="#" data-route="offers">Empleos</a>
                 <a href="#" data-route="professionals">Talento</a>
+                <a href="#" data-route="admin" id="navAdmin" style="display: none;">Administración</a>
+                <a href="#" data-route="profile" id="profileLink" style="display: none;">Perfil</a>
             </nav>
 
             <div class="auth-section" id="authSection"></div>
@@ -73,19 +77,76 @@
             <div id="servicesContainer" class="cards-grid mt-2"></div>
         </section>
 
+        <section id="view-profile" class="view">
+            <div class="view-header">
+                <h2>Mi Perfil</h2>
+            </div>
+            <div id="profileContainer" class="profile-container mt-2"></div>
+        </section>
+
+        <section id="view-admin" class="view">
+            <div class="view-header">
+                <h2>Administración</h2>
+            </div>
+            <p class="text-muted">Eliminá cuentas registradas y publicaciones (ofertas de empleo o perfiles de trabajador).</p>
+            <div class="admin-grid mt-2">
+                <div class="glass-card admin-card">
+                    <h3 class="admin-card-title">Cuentas</h3>
+                    <div id="adminUsersTable" class="admin-table-wrap"></div>
+                </div>
+                <div class="glass-card admin-card">
+                    <h3 class="admin-card-title">Publicaciones</h3>
+                    <div id="adminPostsTable" class="admin-table-wrap"></div>
+                </div>
+            </div>
+        </section>
+
         <section id="view-login" class="view">
             <div class="login-wrapper">
                 <div class="glass-card login-card">
-                    <div class="icon-box center-icon">🔒</div>
-                    <h2>Acceso Interno</h2>
-                    <p class="text-muted">Ingresa tu usuario registrado</p>
-                    <form id="loginForm" class="mt-2">
-                        <div class="form-group">
-                            <input type="text" id="username" required placeholder="Ej: maryon, sebastian...">
-                        </div>
-                        <p id="loginError" class="error-msg" style="display: none;">Acceso denegado. Usuario no existe.</p>
-                        <button type="submit" class="btn btn-primary btn-block">Autenticar</button>
-                    </form>
+                    <div class="auth-tabs">
+                        <button type="button" class="tab active" data-tab="login">Ingresar</button>
+                        <button type="button" class="tab" data-tab="register">Registrarse</button>
+                    </div>
+
+                    <div id="loginTab" class="auth-tab active">
+                        <div class="icon-box center-icon">🔒</div>
+                        <h2>Acceso Interno</h2>
+                        <p class="text-muted">Usuario asignado o RUT y contraseña</p>
+                        <form id="loginForm" class="mt-2">
+                            <div class="form-group">
+                                <input type="text" id="username" required placeholder="Usuario o RUT (ej: 12345678-9)">
+                            </div>
+                            <div class="form-group">
+                                <input type="password" id="password" required placeholder="Contraseña">
+                            </div>
+                            <p id="loginError" class="error-msg" style="display: none;">Acceso denegado. Usuario o contraseña incorrectos.</p>
+                            <button type="submit" class="btn btn-primary btn-block">Autenticar</button>
+                        </form>
+                    </div>
+
+                    <div id="registerTab" class="auth-tab">
+                        <div class="icon-box center-icon">📝</div>
+                        <h2>Crear cuenta</h2>
+                        <p class="text-muted">Solo necesitamos tu RUT: validamos tus datos contra el registro autorizado y te asignamos un usuario.</p>
+                        <form id="registerForm" class="mt-2">
+                            <div class="form-group">
+                                <label for="registerRut">RUT</label>
+                                <input type="text" id="registerRut" required placeholder="Ej: 12.345.678-9 o 12345678-9" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="registerPassword">Contraseña</label>
+                                <input type="password" id="registerPassword" required placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="registerConfirmPassword">Confirmar contraseña</label>
+                                <input type="password" id="registerConfirmPassword" required placeholder="Repite la contraseña" minlength="6" autocomplete="new-password">
+                            </div>
+                            <p id="registerError" class="error-msg" style="display: none;"></p>
+                            <p id="registerSuccess" class="success-msg" style="display: none;">Cuenta creada correctamente. Ahora puedes ingresar.</p>
+                            <button type="submit" class="btn btn-primary btn-block">Registrar</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </section>
@@ -120,6 +181,33 @@
         </div>
     </dialog>
 
-    <script src="./js/app.js"></script>
+    <div id="verificationOverlay" class="verification-overlay" style="display: none;">
+        <div class="verification-modal glass">
+            <div class="verification-header">
+                <h3>Verificando datos</h3>
+                <p class="verification-subtitle">Validando tu RUT contra el registro autorizado (datos.csv)…</p>
+            </div>
+            <div class="verification-steps">
+                <div class="step" id="step1">
+                    <span class="step-icon">✓</span>
+                    <span class="step-text">Validar RUT</span>
+                </div>
+                <div class="step" id="step2">
+                    <span class="step-icon">✓</span>
+                    <span class="step-text">Verificar antecedentes</span>
+                </div>
+                <div class="step" id="step3">
+                    <span class="step-icon">✓</span>
+                    <span class="step-text">Confirmar identidad</span>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <p class="verification-progress" id="progressText">Procesando: 0%</p>
+        </div>
+    </div>
+
+    <script src="./js/app.js?v=20260513"></script>
 </body>
 </html> 
